@@ -22,8 +22,8 @@ app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
                                 # The default select value is for ALL sites
                                 dcc.Dropdown(id='site-dropdown',
                                             options = [{'label': 'All Sites', 'value': 'ALL'},
-                                                    {'label': 'Cape Canaveral', 'value': 'CCAFS'},
-                                                    {'label': 'Vandenburg', 'value': 'VAFB'},
+                                                    {'label': 'Cape Canaveral', 'value': 'CCAFS LC-40'},
+                                                    {'label': 'Vandenburg', 'value': 'VAFB SLC-4E'},
                                                     {'label': 'Kennedy Space Center', 'value': 'KSC LC-39A'}],
                                                 value='ALL',
                                             placeholder='Select a Launch Site',
@@ -54,18 +54,20 @@ app.layout = html.Div(children=[html.H1('SpaceX Launch Records Dashboard',
 @app.callback(Output(component_id='success-pie-chart', component_property='figure'),
               Input(component_id='site-dropdown', component_property='value'))
 def get_pie_chart(entered_site):
-    filtered_df = spacex_df
+    
     if entered_site == 'ALL':
+        filtered_df = spacex_df
+        filtred_df=filtered_df.groupby(['Launch Site'])['class'].agg('count').reset_index()
         fig = px.pie(filtered_df, values='class', 
-        names='class', 
+        names='Launch Site', 
         title='Overall Performance')
         return fig
     else:
         filtered_df = spacex_df[spacex_df["Launch Site"] == entered_site]
-        filtered_df=filtered_df.groupby(['Launch Site','class']).size()
-        fig = px.pie(filtered_df, values='class', 
+        filtered_df=filtered_df.groupby(['Launch Site', 'class'])['class'].agg('count').reset_index(name = 'class count')
+        fig = px.pie(filtered_df, values='class count', 
         names='class', 
-        title='Performance of {entered_site}')
+        title=f'Performance of {entered_site}')
         return fig
     
 # TASK 4:
@@ -75,7 +77,6 @@ def get_pie_chart(entered_site):
                 Input(component_id='payload-slider',component_property='value')])
 def scatter(entered_site,payload):
     filtered_df = spacex_df[spacex_df['Payload Mass (kg)'].between(payload[0],payload[1])]
-    # thought reusing filtered_df may cause issues, but tried it out of curiosity and it seems to be working fine
     
     if entered_site=='ALL':
         fig=px.scatter(filtered_df,x='Payload Mass (kg)',y='class',color='Booster Version Category',title='Success count on Payload mass for all sites')
